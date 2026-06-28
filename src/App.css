@@ -1,0 +1,75 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  gap: 1.5rem;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+}
+
+.bpm-display {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.bpm-value {
+  font-size: 8rem;
+  font-weight: 700;
+  color: #4fc3f7;
+  line-height: 1;
+}
+
+.bpm-label {
+  font-size: 2rem;
+  color: #666;
+}
+
+.state-label {
+  font-size: 1rem;
+  color: #888;
+  min-height: 1.5em;
+}
+
+.toggle-btn {
+  padding: 1rem 2.5rem;
+  font-size: 1rem;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  color: #e0e0e0;
+  background: #1e1e1e;
+  border: 2px solid #333;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-btn:hover:not(:disabled) {
+  border-color: #4fc3f7;
+  color: #4fc3f7;
+}
+
+.toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle-btn.active {
+  background: #b71c1c;
+  border-color: #b71c1c;
+}
+
+.toggle-btn.active:hover {
+  background: #d32f2f;
+  border-color: #d32f2f;
+  color: #e0e0e0;
+}

@@ -3,6 +3,7 @@ import { AudioManager, BreathDetector } from "../audio";
 
 export function useBreathMonitor() {
   const [bpm, setBpm] = useState<number | null>(null);
+  const [frequencyData, setFrequencyData] = useState<Uint8Array>(new Uint8Array(0));
   const audioRef = useRef<AudioManager | null>(null);
   const detectorRef = useRef<BreathDetector | null>(null);
 
@@ -19,6 +20,7 @@ export function useBreathMonitor() {
       const data = audio.getFrequencyData();
       const state = detector.update(data, performance.now());
       setBpm(state.bpm);
+      setFrequencyData(new Uint8Array(data));
 
       if (state.pulseDetected) {
         console.log("Pulse detected");
@@ -32,7 +34,8 @@ export function useBreathMonitor() {
     audioRef.current = null;
     detectorRef.current = null;
     setBpm(null);
+    setFrequencyData(new Uint8Array(0));
   }, []);
 
-  return { bpm, start, stop };
+  return { bpm, frequencyData, start, stop };
 }

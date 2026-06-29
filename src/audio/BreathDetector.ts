@@ -1,14 +1,14 @@
 const ROLLING_WINDOW_SIZE = 5;
 const LOW_BINS_COUNT = 5;
 
-const BASELINE_ALPHA = 0.03;
+const FLOOR_ALPHA_FAST = 0.1;
+const FLOOR_ALPHA_SLOW = 0.0005;
 const THRESHOLD_MULTIPLIER = 2.5;
-const DEBOUNCE_FRACTION = 0.6;
+const DEBOUNCE_FRACTION = 0.45;
 const MIN_THRESHOLD = 25;
 const MAX_THRESHOLD = 230;
-const MIN_DEBOUNCE_MS = 500;
+const MIN_DEBOUNCE_MS = 200;
 const MAX_DEBOUNCE_MS = 3000;
-const QUIET_FRAMES = 30;
 
 export interface BreathDetectorState {
   bpm: number | null;
@@ -29,8 +29,7 @@ export class BreathDetector {
   private lastPulseTime = 0;
 
   private noiseFloor = 0;
-  private noiseFloorInitialized = false;
-  private quietFrameCount = 0;
+  private initialized = false;
 
   private adaptiveThreshold = 180;
   private adaptiveDebounceMs = 1500;
@@ -40,7 +39,7 @@ export class BreathDetector {
       noiseFloor: this.noiseFloor,
       threshold: this.adaptiveThreshold,
       debounceMs: this.adaptiveDebounceMs,
-      initialized: this.noiseFloorInitialized,
+      initialized: this.initialized,
     };
   }
 
@@ -86,25 +85,19 @@ export class BreathDetector {
   }
 
   private calibrateNoiseFloor(avgAmplitude: number): void {
-    if (avgAmplitude < this.adaptiveThreshold) {
-      this.quietFrameCount++;
-      if (this.quietFrameCount >= QUIET_FRAMES) {
-        if (!this.noiseFloorInitialized) {
-          this.noiseFloor = avgAmplitude;
-          this.noiseFloorInitialized = true;
-        } else {
-          this.noiseFloor =
-            this.noiseFloor * (1 - BASELINE_ALPHA) +
-            avgAmplitude * BASELINE_ALPHA;
-        }
-        this.adaptiveThreshold = Math.min(
-          MAX_THRESHOLD,
-          Math.max(MIN_THRESHOLD, this.noiseFloor * THRESHOLD_MULTIPLIER)
-        );
-      }
+    if (!this.initialized) {
+      this.noiseFloor = avgAmplitude;
+      this.initialized = true;
     } else {
-      this.quietFrameCount = 0;
+      const alpha =
+        avgAmplitude < this.noiseFloor ? FLOOR_ALPHA_FAST : FLOOR_ALPHA_SLOW;
+      this.noiseFloor += (avgAmplitude - this.noiseFloor) * alpha;
     }
+
+    this.adaptiveThreshold = Math.min(
+      MAX_THRESHOLD,
+      Math.max(MIN_THRESHOLD, this.noiseFloor * THRESHOLD_MULTIPLIER)
+    );
   }
 
   private calibrateDebounce(): void {
@@ -123,8 +116,7 @@ export class BreathDetector {
     this.intervals = [];
     this.lastPulseTime = 0;
     this.noiseFloor = 0;
-    this.noiseFloorInitialized = false;
-    this.quietFrameCount = 0;
+    this.initialized = false;
     this.adaptiveThreshold = 180;
     this.adaptiveDebounceMs = 1500;
   }

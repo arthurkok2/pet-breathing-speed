@@ -1,17 +1,22 @@
 import { useState, useEffect } from "react";
 import { useBreathMonitor } from "./hooks/useBreathMonitor";
-import { SpectrumVisualizer } from "./components/SpectrumVisualizer";
+import { EnvelopeVisualizer } from "./components/EnvelopeVisualizer";
 import "./App.css";
 
-type AppState =
-  | "idle"
-  | "requesting"
-  | "monitoring"
-  | "error";
+type AppState = "idle" | "requesting" | "monitoring" | "error";
 
 function App() {
   const [state, setState] = useState<AppState>("idle");
-  const { bpm, frequencyData, pulseDetected, energy, calibration, start, stop, clearPulse } = useBreathMonitor();
+  const {
+    bpm,
+    rmsEnergy,
+    pulseDetected,
+    breathCount,
+    calibration,
+    start,
+    stop,
+    clearPulse,
+  } = useBreathMonitor();
 
   useEffect(() => {
     if (!pulseDetected) return;
@@ -46,7 +51,8 @@ function App() {
     idle: "Ready",
     requesting: "Requesting microphone access...",
     monitoring: "Monitoring audio stream...",
-    error: "Microphone access denied. Please allow microphone access and try again.",
+    error:
+      "Microphone access denied. Please allow microphone access and try again.",
   };
 
   return (
@@ -56,7 +62,14 @@ function App() {
         <span className="bpm-value">{bpm ?? "--"}</span>
         <span className="bpm-label">BPM</span>
       </div>
-      <SpectrumVisualizer frequencyData={frequencyData} energy={energy} calibration={calibration} />
+      <EnvelopeVisualizer
+        rmsEnergy={rmsEnergy}
+        threshold={calibration.threshold}
+        noiseFloor={calibration.noiseFloor}
+        calibration={calibration}
+        breathCount={breathCount}
+        active={state === "monitoring"}
+      />
       <p className="state-label">
         {state === "monitoring" && pulseDetected
           ? "Pulse detected"
@@ -70,10 +83,7 @@ function App() {
         {state === "monitoring" ? "Stop Monitoring" : "Start Monitoring"}
       </button>
       {state === "error" && (
-        <button
-          className="toggle-btn"
-          onClick={() => setState("idle")}
-        >
+        <button className="toggle-btn" onClick={() => setState("idle")}>
           Dismiss
         </button>
       )}

@@ -211,7 +211,7 @@ describe("BreathDetector", () => {
       expect(result.bpm).toBeNull();
       expect(result.calibration.initialized).toBe(false);
       expect(result.calibration.noiseFloor).toBe(0);
-      expect(result.calibration.threshold).toBe(0);
+      expect(result.calibration.threshold).toBe(5);
       expect(result.breathCount).toBe(0);
     });
   });

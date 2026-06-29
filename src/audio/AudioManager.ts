@@ -7,7 +7,7 @@ export class AudioManager {
   private animationFrame: number | null = null;
 
   private fftSize = 2048;
-  private highpassHz = 250;
+  private highpassHz = 100;
 
   async start(): Promise<void> {
     this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });

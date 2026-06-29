@@ -44,7 +44,7 @@ export class BreathDetector {
   private readonly sensitivity: number;
 
   private noiseFloor = 0;
-  private threshold = 0;
+  private threshold = MIN_THRESHOLD;
   private calibrated = false;
   private lastRecalibration = 0;
 
@@ -81,7 +81,7 @@ export class BreathDetector {
 
     switch (this.state) {
       case "WAITING":
-        if (rmsEnergy >= this.threshold && this.calibrated) {
+        if (rmsEnergy >= this.threshold) {
           if (timestamp - this.lastBreathTime >= this.debounceMs) {
             this.state = "INHALING";
             this.inhalationStart = timestamp;
@@ -125,7 +125,7 @@ export class BreathDetector {
     this.ringIndex = 0;
     this.ringCount = 0;
     this.noiseFloor = 0;
-    this.threshold = 0;
+    this.threshold = MIN_THRESHOLD;
     this.calibrated = false;
     this.lastRecalibration = 0;
     this.state = "WAITING";

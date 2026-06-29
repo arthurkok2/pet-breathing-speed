@@ -8,9 +8,8 @@ export function useBreathMonitor() {
   const [pulseDetected, setPulseDetected] = useState(false);
   const [breathCount, setBreathCount] = useState(0);
   const [calibration, setCalibration] = useState<CalibrationState>({
-    noiseFloor: 0,
-    threshold: 0,
-    debounceMs: 200,
+    calibratedMagnitude: 0,
+    peakCount: 0,
     initialized: false,
   });
   const audioRef = useRef<AudioManager | null>(null);
@@ -57,9 +56,8 @@ export function useBreathMonitor() {
     setPulseDetected(false);
     setBreathCount(0);
     setCalibration({
-      noiseFloor: 0,
-      threshold: 0,
-      debounceMs: 200,
+      calibratedMagnitude: 0,
+      peakCount: 0,
       initialized: false,
     });
   }, []);

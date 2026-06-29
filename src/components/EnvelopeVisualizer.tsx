@@ -4,8 +4,6 @@ import "./EnvelopeVisualizer.css";
 
 interface EnvelopeVisualizerProps {
   rmsEnergy: number;
-  threshold: number;
-  noiseFloor: number;
   calibration: CalibrationState;
   breathCount: number;
   active: boolean;
@@ -15,8 +13,6 @@ const HISTORY_LENGTH = 600;
 
 export function EnvelopeVisualizer({
   rmsEnergy,
-  threshold,
-  noiseFloor,
   calibration,
   breathCount,
   active,
@@ -25,17 +21,6 @@ export function EnvelopeVisualizer({
   const historyRef = useRef<Float64Array>(new Float64Array(HISTORY_LENGTH));
   const historyIndexRef = useRef(0);
   const historyCountRef = useRef(0);
-
-  const thresholdRef = useRef(threshold);
-  const noiseFloorRef = useRef(noiseFloor);
-
-  useEffect(() => {
-    thresholdRef.current = threshold;
-  }, [threshold]);
-
-  useEffect(() => {
-    noiseFloorRef.current = noiseFloor;
-  }, [noiseFloor]);
 
   const pushValue = useCallback((value: number) => {
     const arr = historyRef.current;
@@ -103,43 +88,6 @@ export function EnvelopeVisualizer({
         ctx.stroke();
       }
 
-      const t = thresholdRef.current;
-      const nf = noiseFloorRef.current;
-
-      if (t > 0) {
-        const threshY = h - (t / 128) * h;
-        ctx.strokeStyle = "rgba(255, 167, 38, 0.7)";
-        ctx.lineWidth = 1;
-        ctx.setLineDash([6, 4]);
-        ctx.beginPath();
-        ctx.moveTo(0, threshY);
-        ctx.lineTo(w, threshY);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        ctx.fillStyle = "rgba(255, 167, 38, 0.9)";
-        ctx.font = "9px monospace";
-        ctx.textAlign = "right";
-        ctx.fillText("threshold", w - 4, threshY - 3);
-      }
-
-      if (nf > 0) {
-        const floorY = h - (nf / 128) * h;
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
-        ctx.lineWidth = 0.5;
-        ctx.setLineDash([3, 5]);
-        ctx.beginPath();
-        ctx.moveTo(0, floorY);
-        ctx.lineTo(w, floorY);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
-        ctx.font = "9px monospace";
-        ctx.textAlign = "right";
-        ctx.fillText("floor", w - 4, floorY - 3);
-      }
-
       rafId = requestAnimationFrame(draw);
     };
 
@@ -161,14 +109,10 @@ export function EnvelopeVisualizer({
           {calibration.initialized ? "calibrated" : "calibrating..."}
         </span>
         <span className="stat">
-          thresh <strong>{Math.round(calibration.threshold)}</strong>
+          mag <strong>{Math.round(calibration.calibratedMagnitude)}</strong>
         </span>
         <span className="stat">
-          floor <strong>{Math.round(calibration.noiseFloor)}</strong>
-        </span>
-        <span className="stat">
-          debounce{" "}
-          <strong>{(calibration.debounceMs / 1000).toFixed(1)}s</strong>
+          peaks <strong>{calibration.peakCount}</strong>
         </span>
         <span className="stat">
           breaths <strong>{breathCount}</strong>

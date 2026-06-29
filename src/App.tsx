@@ -64,8 +64,6 @@ function App() {
       </div>
       <EnvelopeVisualizer
         rmsEnergy={rmsEnergy}
-        threshold={calibration.threshold}
-        noiseFloor={calibration.noiseFloor}
         calibration={calibration}
         breathCount={breathCount}
         active={state === "monitoring"}

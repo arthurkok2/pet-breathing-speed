@@ -1,23 +1,16 @@
-const RING_BUFFER_SIZE = 600;
-const MIN_SAMPLES = 30;
-const SENSITIVITY = 3.0;
-const MIN_THRESHOLD = 5;
-const MAX_THRESHOLD = 200;
-const MIN_DURATION_MS = 200;
+const RING_SIZE = 300;
 const REFRACTORY_MS = 500;
-const MIN_DEBOUNCE_MS = 200;
-const MAX_DEBOUNCE_MS = 3000;
-const DEBOUNCE_FRACTION = 0.45;
+const BOOTSTRAP_MULTIPLIER = 5;
+const SIGNIFICANCE_RATIO = 0.3;
+const MAGNITUDE_RING = 5;
 const ROLLING_WINDOW = 5;
-const RECALIBRATE_INTERVAL_MS = 250;
 const STALENESS_MS = 10000;
-
-type DetectorState = "WAITING" | "INHALING" | "REFRACTORY";
+const FALL_RATIO = 0.6;
+const REFRACTORY_FRAMES = Math.ceil(REFRACTORY_MS / 16.67);
 
 export interface CalibrationState {
-  noiseFloor: number;
-  threshold: number;
-  debounceMs: number;
+  calibratedMagnitude: number;
+  peakCount: number;
   initialized: boolean;
 }
 
@@ -31,84 +24,41 @@ export interface DetectorResult {
 
 export interface BreathDetectorOptions {
   bufferSize?: number;
-  minSamples?: number;
-  sensitivity?: number;
 }
 
 export class BreathDetector {
-  private ringBuffer: Float64Array;
-  private ringIndex = 0;
-  private ringCount = 0;
-  private readonly bufferSize: number;
-  private readonly minSamples: number;
-  private readonly sensitivity: number;
+  private readonly ring: Float64Array;
+  private rIdx = 0;
+  private readonly rSize: number;
 
-  private noiseFloor = 0;
-  private threshold = MIN_THRESHOLD;
-  private calibrated = false;
-  private lastRecalibration = 0;
+  private peakMagnitudes: number[] = [];
+  private calibratedMagnitude = 0;
 
-  private state: DetectorState = "WAITING";
-  private inhalationStart = 0;
-  private refractoryStart = 0;
+  private lastConfirmedFrame = -1000;
 
   private intervals: number[] = [];
   private lastBreathTime = 0;
-  private debounceMs = MIN_DEBOUNCE_MS;
   private breathCount = 0;
 
+  private currentMax = 0;
+  private maxCompleted = false;
+
   constructor(options: BreathDetectorOptions = {}) {
-    this.bufferSize = options.bufferSize ?? RING_BUFFER_SIZE;
-    this.minSamples = options.minSamples ?? MIN_SAMPLES;
-    this.sensitivity = options.sensitivity ?? SENSITIVITY;
-    this.ringBuffer = new Float64Array(this.bufferSize);
+    this.rSize = options.bufferSize ?? RING_SIZE;
+    this.ring = new Float64Array(this.rSize);
   }
 
   get calibration(): CalibrationState {
     return {
-      noiseFloor: this.noiseFloor,
-      threshold: this.threshold,
-      debounceMs: this.debounceMs,
-      initialized: this.calibrated,
+      calibratedMagnitude: this.calibratedMagnitude,
+      peakCount: this.peakMagnitudes.length,
+      initialized: this.peakMagnitudes.length > 0,
     };
   }
 
   update(rmsEnergy: number, timestamp: number): DetectorResult {
-    this.admitToBuffer(rmsEnergy);
-    this.maybeRecalibrate(timestamp);
-
-    let pulseDetected = false;
-
-    switch (this.state) {
-      case "WAITING":
-        if (rmsEnergy >= this.threshold) {
-          if (timestamp - this.lastBreathTime >= this.debounceMs) {
-            this.state = "INHALING";
-            this.inhalationStart = timestamp;
-          }
-        }
-        break;
-
-      case "INHALING":
-        if (rmsEnergy < this.threshold) {
-          if (timestamp - this.inhalationStart >= MIN_DURATION_MS) {
-            this.recordBreath(this.inhalationStart);
-            pulseDetected = true;
-            this.state = "REFRACTORY";
-            this.refractoryStart = timestamp;
-          } else {
-            this.state = "WAITING";
-          }
-        }
-        break;
-
-      case "REFRACTORY":
-        if (timestamp - this.refractoryStart >= REFRACTORY_MS) {
-          this.state = "WAITING";
-        }
-        break;
-    }
-
+    this.pushRing(rmsEnergy);
+    const pulseDetected = this.processPeaks(rmsEnergy, timestamp);
     const bpm = this.computeBpm(timestamp);
 
     return {
@@ -121,91 +71,103 @@ export class BreathDetector {
   }
 
   reset(): void {
-    this.ringBuffer.fill(0);
-    this.ringIndex = 0;
-    this.ringCount = 0;
-    this.noiseFloor = 0;
-    this.threshold = MIN_THRESHOLD;
-    this.calibrated = false;
-    this.lastRecalibration = 0;
-    this.state = "WAITING";
-    this.inhalationStart = 0;
-    this.refractoryStart = 0;
+    this.ring.fill(0);
+    this.rIdx = 0;
+    this.peakMagnitudes = [];
+    this.calibratedMagnitude = 0;
+    this.lastConfirmedFrame = -1000;
     this.intervals = [];
     this.lastBreathTime = 0;
-    this.debounceMs = MIN_DEBOUNCE_MS;
     this.breathCount = 0;
+    this.currentMax = 0;
+    this.maxCompleted = false;
   }
 
-  private admitToBuffer(value: number): void {
-    if (!this.calibrated || value < this.threshold) {
-      this.ringBuffer[this.ringIndex] = value;
-      this.ringIndex = (this.ringIndex + 1) % this.bufferSize;
-      if (this.ringCount < this.bufferSize) {
-        this.ringCount++;
+  private pushRing(value: number): void {
+    this.ring[this.rIdx % this.rSize] = value;
+    this.rIdx++;
+  }
+
+  private ringAt(offset: number): number {
+    return this.ring[((this.rIdx - 1 - offset) % this.rSize + this.rSize) % this.rSize];
+  }
+
+  private processPeaks(rmsEnergy: number, timestamp: number): boolean {
+    if (this.rIdx < 20) return false;
+
+    const inRefractory =
+      this.lastConfirmedFrame >= 0 &&
+      this.rIdx - this.lastConfirmedFrame < REFRACTORY_FRAMES;
+    if (inRefractory) return false;
+
+    if (rmsEnergy > this.currentMax) {
+      this.currentMax = rmsEnergy;
+      this.maxCompleted = false;
+    } else if (
+      !this.maxCompleted &&
+      this.currentMax > 0 &&
+      rmsEnergy < this.currentMax * FALL_RATIO
+    ) {
+      this.maxCompleted = true;
+
+      let valley = Infinity;
+      for (let i = 0; i < 30; i++) {
+        valley = Math.min(valley, this.ringAt(i));
+      }
+
+      const peakVal = this.currentMax;
+      this.currentMax = 0;
+
+      if (this.peakMagnitudes.length === 0) {
+        if (peakVal >= valley * BOOTSTRAP_MULTIPLIER) {
+          return this.confirmBreath(peakVal, timestamp);
+        }
+      } else {
+        const rise = peakVal - valley;
+        if (rise >= this.calibratedMagnitude * SIGNIFICANCE_RATIO) {
+          return this.confirmBreath(peakVal, timestamp);
+        }
       }
     }
+
+    return false;
   }
 
-  private maybeRecalibrate(timestamp: number): void {
-    if (this.ringCount < this.minSamples) return;
-    if (timestamp - this.lastRecalibration < RECALIBRATE_INTERVAL_MS) return;
-
-    this.lastRecalibration = timestamp;
-
-    const sorted = this.ringBuffer.slice(0, this.ringCount);
-    sorted.sort();
-
-    const cutoff = Math.max(1, Math.floor(this.ringCount * 0.2));
-    const lowest = sorted.slice(0, cutoff);
-
-    let sum = 0;
-    for (let i = 0; i < lowest.length; i++) {
-      sum += lowest[i];
-    }
-    const mean = sum / lowest.length;
-
-    let varianceSum = 0;
-    for (let i = 0; i < lowest.length; i++) {
-      const diff = lowest[i] - mean;
-      varianceSum += diff * diff;
-    }
-    const stddev = Math.sqrt(varianceSum / lowest.length);
-
-    this.noiseFloor = mean;
-    this.threshold = Math.max(
-      MIN_THRESHOLD,
-      Math.min(MAX_THRESHOLD, mean + this.sensitivity * stddev)
-    );
-    this.calibrated = true;
-  }
-
-  private recordBreath(timestamp: number): void {
+  private confirmBreath(peakMagnitude: number, timestamp: number): boolean {
     this.breathCount++;
+
+    this.peakMagnitudes.push(peakMagnitude);
+    if (this.peakMagnitudes.length > MAGNITUDE_RING) {
+      this.peakMagnitudes.shift();
+    }
+
+    const sorted = [...this.peakMagnitudes].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    this.calibratedMagnitude =
+      sorted.length % 2 === 1
+        ? sorted[mid]
+        : (sorted[mid - 1] + sorted[mid]) / 2;
 
     if (this.lastBreathTime > 0) {
       const interval = timestamp - this.lastBreathTime;
-      this.intervals.push(interval);
+       this.intervals.push(interval);
       if (this.intervals.length > ROLLING_WINDOW) {
         this.intervals.shift();
-      }
-
-      if (this.intervals.length >= 2) {
-        const avg =
-          this.intervals.reduce((s, v) => s + v, 0) / this.intervals.length;
-        this.debounceMs = Math.max(
-          MIN_DEBOUNCE_MS,
-          Math.min(MAX_DEBOUNCE_MS, avg * DEBOUNCE_FRACTION)
-        );
       }
     }
 
     this.lastBreathTime = timestamp;
+    this.lastConfirmedFrame = this.rIdx;
+
+    return true;
   }
 
   private computeBpm(timestamp: number): number | null {
     if (this.intervals.length === 0) return null;
-    if (this.lastBreathTime > 0 && timestamp - this.lastBreathTime > STALENESS_MS)
+    if (
+      this.lastBreathTime > 0 &&
+      timestamp - this.lastBreathTime > STALENESS_MS
+    )
       return null;
     const avg =
       this.intervals.reduce((s, v) => s + v, 0) / this.intervals.length;

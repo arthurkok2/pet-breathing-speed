@@ -18,3 +18,32 @@
   color: #666;
   padding: 0.25rem 0;
 }
+
+.calibration-stats {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.65rem;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  color: #888;
+  padding: 0.15rem 0 0;
+}
+
+.cal-status {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.cal-status.calibrating {
+  color: #ff9800;
+}
+
+.cal-status.ready {
+  color: #4ade80;
+}
+
+.cal-value strong {
+  color: #aaa;
+  font-weight: 600;
+}

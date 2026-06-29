@@ -11,7 +11,7 @@ type AppState =
 
 function App() {
   const [state, setState] = useState<AppState>("idle");
-  const { bpm, frequencyData, pulseDetected, start, stop, clearPulse } = useBreathMonitor();
+  const { bpm, frequencyData, pulseDetected, energy, calibration, start, stop, clearPulse } = useBreathMonitor();
 
   useEffect(() => {
     if (!pulseDetected) return;
@@ -56,7 +56,7 @@ function App() {
         <span className="bpm-value">{bpm ?? "--"}</span>
         <span className="bpm-label">BPM</span>
       </div>
-      <SpectrumVisualizer frequencyData={frequencyData} />
+      <SpectrumVisualizer frequencyData={frequencyData} energy={energy} calibration={calibration} />
       <p className="state-label">
         {state === "monitoring" && pulseDetected
           ? "Pulse detected"

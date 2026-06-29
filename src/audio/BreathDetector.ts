@@ -13,6 +13,7 @@ const QUIET_FRAMES = 30;
 export interface BreathDetectorState {
   bpm: number | null;
   pulseDetected: boolean;
+  energy: number;
 }
 
 export interface CalibrationState {
@@ -81,7 +82,7 @@ export class BreathDetector {
       bpm = Math.round(60000 / avgInterval);
     }
 
-    return { bpm, pulseDetected };
+    return { bpm, pulseDetected, energy: avgAmplitude };
   }
 
   private calibrateNoiseFloor(avgAmplitude: number): void {

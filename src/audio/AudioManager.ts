@@ -11,7 +11,8 @@ export class AudioManager {
 
   async start(): Promise<void> {
     this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    this.context = new AudioContext();
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    this.context = new AudioCtx();
 
     const source = this.context.createMediaStreamSource(this.stream);
     const filter = this.context.createBiquadFilter();
@@ -21,6 +22,9 @@ export class AudioManager {
     filter.frequency.value = this.lowpassHz;
 
     analyser.fftSize = this.fftSize;
+    analyser.minDecibels = -70;
+    analyser.maxDecibels = -20;
+    analyser.smoothingTimeConstant = 0.4;
 
     source.connect(filter);
     filter.connect(analyser);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useBreathMonitor } from "./hooks/useBreathMonitor";
 import { SpectrumVisualizer } from "./components/SpectrumVisualizer";
 import "./App.css";
@@ -11,7 +11,15 @@ type AppState =
 
 function App() {
   const [state, setState] = useState<AppState>("idle");
-  const { bpm, frequencyData, start, stop } = useBreathMonitor();
+  const { bpm, frequencyData, pulseDetected, start, stop, clearPulse } = useBreathMonitor();
+
+  useEffect(() => {
+    if (!pulseDetected) return;
+    const timer = setTimeout(() => {
+      clearPulse();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [pulseDetected, clearPulse]);
 
   const handleToggle = async () => {
     if (state === "monitoring") {
@@ -49,7 +57,11 @@ function App() {
         <span className="bpm-label">BPM</span>
       </div>
       <SpectrumVisualizer frequencyData={frequencyData} />
-      <p className="state-label">{stateLabels[state]}</p>
+      <p className="state-label">
+        {state === "monitoring" && pulseDetected
+          ? "Pulse detected"
+          : stateLabels[state]}
+      </p>
       <button
         className={`toggle-btn ${state === "monitoring" ? "active" : ""}`}
         onClick={handleToggle}

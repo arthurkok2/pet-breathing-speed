@@ -104,7 +104,7 @@ describe("BreathDetector", () => {
         detector.update(100, (60 + i) * 16);
       }
 
-      const result = detector.update(5, 75 * 16);
+      const result = detector.update(3, 75 * 16);
       expect(result.pulseDetected).toBe(true);
     });
 
@@ -127,7 +127,7 @@ describe("BreathDetector", () => {
       for (let i = 0; i < 15; i++) {
         detector.update(100, startMs + i * 16);
       }
-      const result = detector.update(5, startMs + 15 * 16);
+      const result = detector.update(3, startMs + 15 * 16);
       return result.bpm ?? 0;
     }
 
@@ -177,7 +177,7 @@ describe("BreathDetector", () => {
       for (let i = 0; i < 15; i++) {
         detector.update(100, startMs + i * 16);
       }
-      const result = detector.update(5, startMs + 15 * 16);
+      const result = detector.update(3, startMs + 15 * 16);
       return result.bpm ?? 0;
     }
 
@@ -187,8 +187,11 @@ describe("BreathDetector", () => {
       simulateBreath(detector, 60 * 16);
       simulateBreath(detector, 4000);
 
-      const tooSoon = simulateBreath(detector, 4400);
-      expect(tooSoon).toBe(0);
+      for (let i = 0; i < 15; i++) {
+        detector.update(100, 4400 + i * 16);
+      }
+      const tooSoon = detector.update(3, 4400 + 15 * 16);
+      expect(tooSoon.pulseDetected).toBe(false);
     });
   });
 

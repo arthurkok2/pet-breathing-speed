@@ -7,7 +7,7 @@ export class AudioManager {
   private animationFrame: number | null = null;
 
   private fftSize = 2048;
-  private lowpassHz = 150;
+  private highpassHz = 250;
 
   async start(): Promise<void> {
     this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -18,13 +18,10 @@ export class AudioManager {
     const filter = this.context.createBiquadFilter();
     const analyser = this.context.createAnalyser();
 
-    filter.type = "lowpass";
-    filter.frequency.value = this.lowpassHz;
+    filter.type = "highpass";
+    filter.frequency.value = this.highpassHz;
 
     analyser.fftSize = this.fftSize;
-    analyser.minDecibels = -70;
-    analyser.maxDecibels = -20;
-    analyser.smoothingTimeConstant = 0.4;
 
     source.connect(filter);
     filter.connect(analyser);
@@ -34,12 +31,12 @@ export class AudioManager {
     this.analyser = analyser;
   }
 
-  getFrequencyData(): Uint8Array {
+  getTimeDomainData(): Uint8Array {
     if (!this.analyser) {
       return new Uint8Array(0);
     }
-    const buffer = new Uint8Array(this.analyser.frequencyBinCount);
-    this.analyser.getByteFrequencyData(buffer);
+    const buffer = new Uint8Array(this.analyser.fftSize);
+    this.analyser.getByteTimeDomainData(buffer);
     return buffer;
   }
 

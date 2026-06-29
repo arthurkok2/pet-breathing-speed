@@ -90,7 +90,7 @@ export class BreathDetector {
         break;
 
       case "INHALING":
-        if (rmsEnergy <= this.threshold) {
+        if (rmsEnergy < this.threshold) {
           if (timestamp - this.inhalationStart >= MIN_DURATION_MS) {
             this.recordBreath(this.inhalationStart);
             pulseDetected = true;
@@ -109,7 +109,7 @@ export class BreathDetector {
         break;
     }
 
-    const bpm = this.state === "REFRACTORY" ? null : this.computeBpm(timestamp);
+    const bpm = this.computeBpm(timestamp);
 
     return {
       bpm,

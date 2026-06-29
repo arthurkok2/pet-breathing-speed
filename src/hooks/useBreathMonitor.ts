@@ -4,13 +4,13 @@ import type { CalibrationState } from "../audio/BreathDetector";
 
 export function useBreathMonitor() {
   const [bpm, setBpm] = useState<number | null>(null);
-  const [frequencyData, setFrequencyData] = useState<Uint8Array>(new Uint8Array(0));
+  const [rmsEnergy, setRmsEnergy] = useState(0);
   const [pulseDetected, setPulseDetected] = useState(false);
-  const [energy, setEnergy] = useState(0);
+  const [breathCount, setBreathCount] = useState(0);
   const [calibration, setCalibration] = useState<CalibrationState>({
     noiseFloor: 0,
-    threshold: 180,
-    debounceMs: 1500,
+    threshold: 0,
+    debounceMs: 200,
     initialized: false,
   });
   const audioRef = useRef<AudioManager | null>(null);
@@ -26,11 +26,19 @@ export function useBreathMonitor() {
     detectorRef.current = detector;
 
     audio.requestAnimationLoop(() => {
-      const data = audio.getFrequencyData();
-      const state = detector.update(data, performance.now());
+      const data = audio.getTimeDomainData();
+
+      let sum = 0;
+      for (let i = 0; i < data.length; i++) {
+        const diff = data[i] - 128;
+        sum += diff * diff;
+      }
+      const rms = Math.sqrt(sum / data.length);
+
+      const state = detector.update(rms, performance.now());
       setBpm(state.bpm);
-      setFrequencyData(new Uint8Array(data));
-      setEnergy(state.energy);
+      setRmsEnergy(state.rmsEnergy);
+      setBreathCount(state.breathCount);
       setCalibration({ ...detector.calibration });
 
       if (state.pulseDetected) {
@@ -45,15 +53,29 @@ export function useBreathMonitor() {
     audioRef.current = null;
     detectorRef.current = null;
     setBpm(null);
-    setFrequencyData(new Uint8Array(0));
+    setRmsEnergy(0);
     setPulseDetected(false);
-    setEnergy(0);
-    setCalibration({ noiseFloor: 0, threshold: 180, debounceMs: 1500, initialized: false });
+    setBreathCount(0);
+    setCalibration({
+      noiseFloor: 0,
+      threshold: 0,
+      debounceMs: 200,
+      initialized: false,
+    });
   }, []);
 
   const clearPulse = useCallback(() => {
     setPulseDetected(false);
   }, []);
 
-  return { bpm, frequencyData, pulseDetected, energy, calibration, start, stop, clearPulse };
+  return {
+    bpm,
+    rmsEnergy,
+    pulseDetected,
+    breathCount,
+    calibration,
+    start,
+    stop,
+    clearPulse,
+  };
 }

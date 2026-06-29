@@ -204,13 +204,11 @@ export class BreathDetector {
   }
 
   private computeBpm(timestamp: number): number | null {
-    if (this.lastBreathTime <= 0) return null;
-    const lastInterval = timestamp - this.lastBreathTime;
-    if (lastInterval > STALENESS_MS) return null;
+    if (this.intervals.length === 0) return null;
+    if (this.lastBreathTime > 0 && timestamp - this.lastBreathTime > STALENESS_MS)
+      return null;
     const avg =
-      this.intervals.length > 0
-        ? this.intervals.reduce((s, v) => s + v, 0) / this.intervals.length
-        : lastInterval;
+      this.intervals.reduce((s, v) => s + v, 0) / this.intervals.length;
     return Math.round(60000 / avg);
   }
 }

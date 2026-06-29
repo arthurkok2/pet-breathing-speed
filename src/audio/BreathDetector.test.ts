@@ -137,14 +137,18 @@ describe("BreathDetector", () => {
       expect(result.bpm).toBeNull();
     });
 
-    it("computes BPM from a single breath interval", () => {
+    it("computes BPM from two breath intervals", () => {
       seedAmbient(detector, 3, 7, 16, 60);
 
       simulateBreath(detector, 60 * 16);
-      const result = detector.update(5, 120 * 16);
 
-      expect(result.bpm).not.toBeNull();
-      expect(result.bpm).toBeGreaterThan(0);
+      const afterOne = detector.update(5, 2000);
+      expect(afterOne.bpm).toBeNull();
+
+      simulateBreath(detector, 5000);
+      const afterTwo = detector.update(5, 7000);
+      expect(afterTwo.bpm).not.toBeNull();
+      expect(afterTwo.bpm).toBeGreaterThan(0);
     });
 
     it("computes rolling average from up to 5 intervals", () => {
@@ -163,11 +167,12 @@ describe("BreathDetector", () => {
       seedAmbient(detector, 3, 7, 16, 60);
 
       simulateBreath(detector, 60 * 16);
+      simulateBreath(detector, 4000);
 
-      const mid = detector.update(5, 2000);
+      const mid = detector.update(5, 6000);
       expect(mid.bpm).not.toBeNull();
 
-      const stale = detector.update(5, 15000);
+      const stale = detector.update(5, 20000);
       expect(stale.bpm).toBeNull();
     });
   });

@@ -10,12 +10,20 @@ function App() {
   const {
     bpm,
     rmsEnergy,
+    floor,
     pulseDetected,
     breathCount,
+    breathFrameCounter,
     calibration,
+    isRecording,
+    hasRecording,
     start,
     stop,
     clearPulse,
+    startRecording,
+    stopRecording,
+    downloadSession,
+    downloadAudio,
   } = useBreathMonitor();
 
   useEffect(() => {
@@ -64,15 +72,42 @@ function App() {
       </div>
       <EnvelopeVisualizer
         rmsEnergy={rmsEnergy}
+        floor={floor}
         calibration={calibration}
         breathCount={breathCount}
+        breathFrameCounter={breathFrameCounter}
         active={state === "monitoring"}
       />
       <p className="state-label">
         {state === "monitoring" && pulseDetected
-          ? "Pulse detected"
-          : stateLabels[state]}
+          ? "Breath detected"
+          : isRecording
+            ? "Recording..."
+            : stateLabels[state]}
       </p>
+      {state === "monitoring" && (
+        <div className="recording-bar">
+          {!isRecording ? (
+            <button className="record-btn" onClick={startRecording}>
+              Record Session
+            </button>
+          ) : (
+            <button className="record-btn recording" onClick={stopRecording}>
+              Stop Recording
+            </button>
+          )}
+          {hasRecording && (
+            <>
+              <button className="download-btn" onClick={downloadSession}>
+                Download Log (JSON)
+              </button>
+              <button className="download-btn" onClick={downloadAudio}>
+                Download Audio (WebM)
+              </button>
+            </>
+          )}
+        </div>
+      )}
       <button
         className={`toggle-btn ${state === "monitoring" ? "active" : ""}`}
         onClick={handleToggle}

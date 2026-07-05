@@ -53,6 +53,10 @@ export class AudioManager {
     return this.context !== null && this.context.state !== "closed";
   }
 
+  getStream(): MediaStream | null {
+    return this.stream;
+  }
+
   requestAnimationLoop(callback: () => void): void {
     const loop = () => {
       if (!this.isActive()) return;

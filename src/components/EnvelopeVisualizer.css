@@ -22,19 +22,6 @@
   padding: 0.15rem 0 0;
 }
 
-.envelope-stats .status {
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
-.envelope-stats .status.calibrating {
-  color: #ff9800;
-}
-
-.envelope-stats .status.calibrated {
-  color: #4ade80;
-}
-
 .envelope-stats .stat strong {
   color: #aaa;
   font-weight: 600;

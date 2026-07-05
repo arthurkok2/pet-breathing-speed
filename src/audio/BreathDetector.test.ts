@@ -9,149 +9,156 @@ function pushFrames(detector: BreathDetector, values: number[], msPerFrame: numb
   values.forEach((v, i) => detector.update(v, i * msPerFrame));
 }
 
-function simulateBreath(
+function pushSustained(
   detector: BreathDetector,
+  rmsValue: number,
+  count: number,
   startFrame: number,
-  peakHeight: number,
   msPerFrame = 16,
 ): { pulseDetected: boolean; bpm: number | null } {
-  const valley = 3;
-  const rampLen = 10;
-  const fallLen = 10;
-  const startMs = startFrame * msPerFrame;
   let pulseDetected = false;
   let bpm: number | null = null;
-
-  const push = (v: number, t: number) => {
-    const r = detector.update(v, t);
+  for (let i = 0; i < count; i++) {
+    const r = detector.update(rmsValue, (startFrame + i) * msPerFrame);
     if (r.pulseDetected) pulseDetected = true;
     bpm = r.bpm;
-  };
-
-  for (let i = 0; i < 5; i++) push(valley, startMs + i * msPerFrame);
-  for (let i = 0; i < rampLen; i++)
-    push(valley + ((peakHeight - valley) * (i + 1)) / (rampLen + 1), startMs + (5 + i) * msPerFrame);
-  push(peakHeight, startMs + (5 + rampLen) * msPerFrame);
-  for (let i = 0; i < fallLen; i++)
-    push(peakHeight - ((peakHeight - valley) * (i + 1)) / (fallLen + 1), startMs + (6 + rampLen + i) * msPerFrame);
-  for (let i = 0; i < 25; i++)
-    push(valley, startMs + (6 + rampLen + fallLen + i) * msPerFrame);
-
+  }
   return { pulseDetected, bpm };
 }
 
-describe("BreathDetector (peak-based)", () => {
+function pushRampUp(
+  detector: BreathDetector,
+  from: number,
+  to: number,
+  count: number,
+  startFrame: number,
+  msPerFrame = 16,
+): void {
+  for (let i = 0; i < count; i++) {
+    const t = from + ((to - from) * (i + 1)) / (count + 1);
+    detector.update(t, (startFrame + i) * msPerFrame);
+  }
+}
+
+function pushRampDown(
+  detector: BreathDetector,
+  from: number,
+  to: number,
+  count: number,
+  startFrame: number,
+  msPerFrame = 16,
+): void {
+  for (let i = 0; i < count; i++) {
+    const t = from - ((from - to) * (i + 1)) / (count + 1);
+    detector.update(t, (startFrame + i) * msPerFrame);
+  }
+}
+
+describe("BreathDetector (sustained-energy)", () => {
   let detector: BreathDetector;
 
   beforeEach(() => {
     detector = createDetector();
   });
 
-  describe("initialization and bootstrap", () => {
-    it("returns uninitialized calibration initially", () => {
-      const result = detector.update(5, 0);
-      expect(result.calibration.initialized).toBe(false);
+  describe("floor initialization", () => {
+    it("establishes a floor from ambient noise", () => {
+      detector.update(0.5, 0);
+      const r = detector.update(0.5, 16);
+      expect(r.floor).toBeGreaterThan(0.4);
+      expect(r.floor).toBeLessThan(0.6);
     });
+  });
 
-    it("detects first breath using bootstrap rule (peak >= 5x valley)", () => {
-      pushFrames(detector, Array(30).fill(3), 16);
-      const result = simulateBreath(detector, 30, 40);
+  describe("sustained detection", () => {
+    it("detects a sustained elevation above threshold", () => {
+      pushFrames(detector, Array(30).fill(0.5), 16);
+      const result = pushSustained(detector, 2.5, 30, 30);
       expect(result.pulseDetected).toBe(true);
     });
 
-    it("rejects small peaks during bootstrap (peak < 5x valley)", () => {
-      pushFrames(detector, Array(30).fill(5), 16);
-      const result = simulateBreath(detector, 30, 10);
+    it("ignores brief spikes shorter than minimum duration", () => {
+      pushFrames(detector, Array(30).fill(0.5), 16);
+      const result = pushSustained(detector, 5.0, 15, 30);
       expect(result.pulseDetected).toBe(false);
     });
-  });
 
-  describe("magnitude calibration", () => {
-    it("initializes calibrated magnitude after first breath", () => {
-      pushFrames(detector, Array(30).fill(3), 16);
-      simulateBreath(detector, 30, 40);
-      const result = detector.update(3, 2000);
-      expect(result.calibration.initialized).toBe(true);
-      expect(result.calibration.calibratedMagnitude).toBeGreaterThan(0);
-    });
-
-    it("updates calibrated magnitude as more breaths arrive", () => {
-      pushFrames(detector, Array(30).fill(3), 16);
-      simulateBreath(detector, 30, 40);
-      simulateBreath(detector, 200, 55);
-      const result = detector.update(3, 5000);
-      expect(result.calibration.calibratedMagnitude).toBeGreaterThan(30);
-    });
-
-    it("tracks median of last 5 confirmed peak magnitudes", () => {
-      pushFrames(detector, Array(30).fill(3), 16);
-      simulateBreath(detector, 30, 30);
-      simulateBreath(detector, 200, 35);
-      simulateBreath(detector, 400, 40);
-      simulateBreath(detector, 600, 45);
-      simulateBreath(detector, 800, 50);
-      const result = detector.update(3, 5000);
-      expect(result.calibration.calibratedMagnitude).toBe(40);
-    });
-
-    it("uses peak-to-valley ratio against calibrated magnitude", () => {
-      pushFrames(detector, Array(30).fill(3), 16);
-      simulateBreath(detector, 30, 60);
-      const result = detector.update(3, 2000);
-      expect(result.calibration.initialized).toBe(true);
+    it("ignores baseline noise below threshold", () => {
+      pushFrames(detector, Array(60).fill(0.5), 16);
+      const r = detector.update(0.5, 61 * 16);
+      expect(r.pulseDetected).toBe(false);
+      expect(r.breathCount).toBe(0);
     });
   });
 
-  describe("peak detection", () => {
-    it("detects a completed local maximum as a breath", () => {
-      pushFrames(detector, Array(30).fill(3), 16);
-      const { pulseDetected } = simulateBreath(detector, 30, 40);
-      expect(pulseDetected).toBe(true);
+  describe("refractory period", () => {
+    it("prevents re-detection during a single breath", () => {
+      pushFrames(detector, Array(30).fill(0.5), 16);
+      pushSustained(detector, 2.5, 30, 30);
+      const r = detector.update(0.5, 61 * 16);
+      expect(r.breathCount).toBe(1);
     });
 
-    it("ignores peaks too small relative to calibrated magnitude", () => {
-      pushFrames(detector, Array(30).fill(3), 16);
-      simulateBreath(detector, 30, 50);
-      const { pulseDetected } = simulateBreath(detector, 180, 8);
-      expect(pulseDetected).toBe(false);
+    it("honors refractory cooldown between separate breaths", () => {
+      pushFrames(detector, Array(30).fill(0.5), 16);
+
+      // First breath: sustained elevation
+      pushSustained(detector, 2.5, 30, 30);
+      // Return to baseline, allow OFF_FRAMES to pass
+      pushFrames(detector, Array(20).fill(0.5), 60);
+
+      // Second breath attempt within refractory (1500ms ~= 94 frames)
+      // Frame 80 is only 50 frames after detection at ~frame 55
+      const r = pushSustained(detector, 2.5, 30, 80);
+      expect(r.pulseDetected).toBe(false);
+    });
+
+    it("detects second breath after refractory expires", () => {
+      pushFrames(detector, Array(30).fill(0.5), 16);
+
+      pushSustained(detector, 2.5, 30, 30);
+      // Return to baseline and wait past refractory
+      pushFrames(detector, Array(120).fill(0.5), 60);
+
+      const r = pushSustained(detector, 2.5, 30, 180);
+      expect(r.pulseDetected).toBe(true);
     });
   });
 
-  describe("refractory", () => {
-    it("prevents re-detection during a single peak cycle", () => {
-      pushFrames(detector, Array(30).fill(3), 16);
-      simulateBreath(detector, 30, 40);
-      // After first breath, breathCount should be exactly 1
-      expect(detector.update(3, 2000).breathCount).toBe(1);
-    });
-  });
-
-  describe("BPM", () => {
+  describe("BPM calculation", () => {
     it("returns null with no confirmed breaths", () => {
-      pushFrames(detector, Array(30).fill(3), 16);
-      const result = detector.update(3, 2000);
-      expect(result.bpm).toBeNull();
+      pushFrames(detector, Array(30).fill(0.5), 16);
+      const r = detector.update(0.5, 31 * 16);
+      expect(r.bpm).toBeNull();
     });
 
-    it("computes BPM from intervals between confirmed peaks", () => {
-      pushFrames(detector, Array(30).fill(3), 16);
-      simulateBreath(detector, 30, 40);
-      simulateBreath(detector, 200, 40);
-      const result = detector.update(3, 5000);
-      expect(result.bpm).not.toBeNull();
-      expect(result.bpm).toBeGreaterThan(0);
+    it("computes BPM from intervals between confirmed breaths", () => {
+      pushFrames(detector, Array(30).fill(0.5), 16);
+
+      // First breath at ~frame 55
+      pushSustained(detector, 2.5, 30, 30);
+      pushFrames(detector, Array(20).fill(0.5), 60);
+
+      // Wait past refractory and trigger second breath
+      pushFrames(detector, Array(120).fill(0.5), 80);
+      pushSustained(detector, 2.5, 30, 200);
+
+      const r = detector.update(0.5, 230 * 16);
+      expect(r.bpm).not.toBeNull();
+      expect(r.bpm).toBeGreaterThan(0);
     });
   });
 
   describe("reset", () => {
     it("clears all state", () => {
-      pushFrames(detector, Array(30).fill(3), 16);
-      simulateBreath(detector, 30, 40);
+      pushFrames(detector, Array(30).fill(0.5), 16);
+      pushSustained(detector, 2.5, 30, 30);
       detector.reset();
-      const result = detector.update(3, 0);
-      expect(result.bpm).toBeNull();
-      expect(result.breathCount).toBe(0);
-      expect(result.calibration.initialized).toBe(false);
+
+      const r = detector.update(0.5, 0);
+      expect(r.bpm).toBeNull();
+      expect(r.breathCount).toBe(0);
+      expect(r.pulseDetected).toBe(false);
     });
   });
 });

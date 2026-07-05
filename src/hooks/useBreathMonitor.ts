@@ -30,6 +30,9 @@ export interface AssessmentResult {
   minBpm: number;
   maxBpm: number;
   durationSec: number;
+  rmsLog: number[];
+  floor: number;
+  breathFrames: number[];
 }
 
 function downloadJson(filename: string, data: unknown): void {
@@ -74,6 +77,8 @@ export function useBreathMonitor() {
   const assessmentLastBreathRef = useRef(0);
   const assessmentBreathsRef = useRef(0);
   const assessmentIntervalsRef = useRef<number[]>([]);
+  const assessmentRmsRef = useRef<number[]>([]);
+  const assessmentBreathFramesRef = useRef<number[]>([]);
 
   const start = useCallback(async (constraints: AudioConstraints = {}) => {
     const audio = new AudioManager();
@@ -120,6 +125,13 @@ export function useBreathMonitor() {
         }
       }
 
+      if (assessmentRef.current) {
+        assessmentRmsRef.current.push(state.rmsEnergy);
+        if (state.pulseDetected) {
+          assessmentBreathFramesRef.current.push(assessmentRmsRef.current.length - 1);
+        }
+      }
+
       if (state.pulseDetected) {
         setPulseDetected(true);
         setBreathFrameCounter((c) => c + 1);
@@ -149,6 +161,9 @@ export function useBreathMonitor() {
               minBpm: Math.min(...bpms),
               maxBpm: Math.max(...bpms),
               durationSec: Math.round(assessmentAccumulatedRef.current / 1000),
+              rmsLog: assessmentRmsRef.current,
+              floor: 0,
+              breathFrames: assessmentBreathFramesRef.current,
             });
             setAssessmentActive(false);
           }
@@ -248,6 +263,8 @@ export function useBreathMonitor() {
     assessmentLastBreathRef.current = 0;
     assessmentBreathsRef.current = 0;
     assessmentIntervalsRef.current = [];
+    assessmentRmsRef.current = [];
+    assessmentBreathFramesRef.current = [];
     setAssessmentActive(true);
     setAssessmentElapsed(0);
     setAssessmentResult(null);

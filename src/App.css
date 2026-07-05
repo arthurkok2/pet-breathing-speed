@@ -179,7 +179,9 @@
   border-radius: 8px;
   padding: 2rem;
   text-align: center;
-  min-width: 280px;
+  min-width: 320px;
+  max-width: 420px;
+  width: 90vw;
 }
 
 .report-card h2 {
@@ -227,6 +229,44 @@
 
 .report-row strong {
   color: #aaa;
+}
+
+.report-canvas {
+  display: block;
+  width: 100%;
+  height: 140px;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.report-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.report-actions .toggle-btn {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.85rem;
+}
+
+.report-actions .download-btn {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  color: #888;
+  background: transparent;
+  border: 2px solid #333;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.report-actions .download-btn:hover {
+  border-color: #4fc3f7;
+  color: #4fc3f7;
 }
 
 .audio-toggles {

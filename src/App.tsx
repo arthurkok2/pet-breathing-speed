@@ -1,15 +1,180 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useBreathMonitor } from "./hooks/useBreathMonitor";
+import type { AssessmentResult } from "./hooks/useBreathMonitor";
 import { EnvelopeVisualizer } from "./components/EnvelopeVisualizer";
 import "./App.css";
 
 type AppState = "idle" | "requesting" | "monitoring" | "error";
+
+const BREATH_SPAN = 30;
+
+function AssessmentWaveform({ result, canvasRef }: { result: AssessmentResult; canvasRef: React.RefObject<HTMLCanvasElement | null> }) {
+  const internalRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = internalRef.current;
+    if (!canvas) return;
+
+    if (canvasRef) (canvasRef as React.MutableRefObject<HTMLCanvasElement | null>).current = canvas;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.scale(dpr, dpr);
+
+    const w = rect.width;
+    const h = rect.height;
+    const log = result.rmsLog;
+
+    ctx.fillStyle = "#0a0a0a";
+    ctx.fillRect(0, 0, w, h);
+
+    let peak = 1;
+    for (const v of log) if (v > peak) peak = v;
+
+    for (const frame of result.breathFrames) {
+      const s = Math.max(0, frame - BREATH_SPAN);
+      const e = Math.min(log.length - 1, frame);
+      const x1 = (s / log.length) * w;
+      const x2 = (e / log.length) * w;
+      ctx.fillStyle = "rgba(74, 222, 128, 0.06)";
+      ctx.fillRect(x1, 0, x2 - x1, h);
+      ctx.strokeStyle = "rgba(74, 222, 128, 0.15)";
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(x1, 0);
+      ctx.lineTo(x1, h);
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.04)";
+    ctx.lineWidth = 0.5;
+    for (let i = 1; i < 4; i++) {
+      const y = (h / 4) * i;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    }
+
+    if (log.length > 1) {
+      ctx.strokeStyle = "#4fc3f7";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let i = 0; i < log.length; i++) {
+        const x = (i / (log.length - 1)) * w;
+        const y = h - (log[i] / peak) * h;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+
+    for (const frame of result.breathFrames) {
+      const x = (frame / (log.length - 1)) * w;
+      const y = h - (log[frame] / peak) * h;
+      ctx.fillStyle = "#4ade80";
+      ctx.beginPath();
+      ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }, [result, canvasRef]);
+
+  return <canvas ref={internalRef} className="report-canvas" />;
+}
+
+function downloadJson(data: unknown, filename: string) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadAssessmentJson(result: AssessmentResult) {
+  const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  downloadJson({
+    avgBpm: result.avgBpm,
+    minBpm: result.minBpm,
+    maxBpm: result.maxBpm,
+    breaths: result.breaths,
+    durationSec: result.durationSec,
+    rmsLog: result.rmsLog,
+    breathFrames: result.breathFrames,
+  }, `willow-assessment-${ts}.json`);
+}
+
+function downloadAssessmentCsv(result: AssessmentResult) {
+  const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  let csv = "frame,rms,breath\n";
+  const breathSet = new Set(result.breathFrames);
+  for (let i = 0; i < result.rmsLog.length; i++) {
+    csv += `${i},${result.rmsLog[i]},${breathSet.has(i) ? 1 : 0}\n`;
+  }
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `willow-assessment-${ts}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadAssessmentHtml(result: AssessmentResult, canvas: HTMLCanvasElement | null) {
+  const imgData = canvas?.toDataURL("image/png") ?? "";
+  const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Willow Respiratory Assessment</title>
+<style>
+  body { background:#121212; color:#e0e0e0; font-family:monospace; max-width:500px; margin:2rem auto; padding:1rem; }
+  h1 { color:#888; text-transform:uppercase; letter-spacing:.3em; font-size:1.2rem; font-weight:400; text-align:center; }
+  .bpm { text-align:center; margin:1.5rem 0; }
+  .bpm .value { font-size:4rem; font-weight:700; color:#4fc3f7; }
+  .bpm .label { font-size:1.2rem; color:#666; }
+  img { display:block; width:100%; border-radius:4px; margin:1rem 0; }
+  .stats { border-top:1px solid #333; padding-top:1rem; }
+  .stat { display:flex; justify-content:space-between; padding:.3rem 0; color:#888; }
+  .stat strong { color:#aaa; }
+</style>
+</head>
+<body>
+<h1>Willow Respiratory Assessment</h1>
+<div class="bpm">
+  <div class="value">${result.avgBpm}</div>
+  <div class="label">Average BPM</div>
+</div>
+${imgData ? `<img src="${imgData}" alt="Breathing waveform">` : ""}
+<div class="stats">
+  <div class="stat"><span>Range</span><strong>${result.minBpm} – ${result.maxBpm} BPM</strong></div>
+  <div class="stat"><span>Total breaths</span><strong>${result.breaths}</strong></div>
+  <div class="stat"><span>Duration</span><strong>${result.durationSec}s</strong></div>
+</div>
+</body>
+</html>`;
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `willow-assessment-${ts}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 function App() {
   const [state, setState] = useState<AppState>("idle");
   const [echoOff, setEchoOff] = useState(true);
   const [noiseOff, setNoiseOff] = useState(true);
   const [gainOff, setGainOff] = useState(true);
+  const waveformCanvasRef = useRef<HTMLCanvasElement>(null);
   const {
     bpm,
     rmsEnergy,
@@ -42,6 +207,13 @@ function App() {
     }, 500);
     return () => clearTimeout(timer);
   }, [pulseDetected, clearPulse]);
+
+  useEffect(() => {
+    if (assessmentResult && state === "monitoring") {
+      stop();
+      setState("idle");
+    }
+  }, [assessmentResult, state, stop]);
 
   const handleToggle = async () => {
     if (state === "monitoring") {
@@ -181,6 +353,7 @@ function App() {
               <span className="report-value">{assessmentResult.avgBpm}</span>
               <span className="report-label">Average BPM</span>
             </div>
+            <AssessmentWaveform result={assessmentResult} canvasRef={waveformCanvasRef} />
             <div className="report-details">
               <div className="report-row">
                 <span>Range</span>
@@ -195,9 +368,20 @@ function App() {
                 <strong>{assessmentResult.durationSec}s</strong>
               </div>
             </div>
-            <button className="toggle-btn" onClick={dismissAssessment}>
-              Dismiss
-            </button>
+            <div className="report-actions">
+              <button className="download-btn" onClick={() => downloadAssessmentJson(assessmentResult)}>
+                JSON
+              </button>
+              <button className="download-btn" onClick={() => downloadAssessmentCsv(assessmentResult)}>
+                CSV
+              </button>
+              <button className="download-btn" onClick={() => downloadAssessmentHtml(assessmentResult, waveformCanvasRef.current)}>
+                HTML
+              </button>
+              <button className="toggle-btn" onClick={dismissAssessment}>
+                Dismiss
+              </button>
+            </div>
           </div>
         </div>
       )}

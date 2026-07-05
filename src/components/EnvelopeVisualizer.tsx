@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect } from "react";
 import type { CalibrationState } from "../audio/BreathDetector";
 import "./EnvelopeVisualizer.css";
 
@@ -33,20 +33,11 @@ export function EnvelopeVisualizer({
   const historyIndexRef = useRef(0);
   const historyCountRef = useRef(0);
   const absoluteFrameRef = useRef(0);
+  const rmsRef = useRef(0);
   const floorRef = useRef(0);
   const yMaxRef = useRef(Y_MIN_CEILING);
   const breathSpansRef = useRef<BreathSpan[]>([]);
   const lastCounterRef = useRef(0);
-
-  const pushValue = useCallback((value: number) => {
-    const arr = historyRef.current;
-    arr[historyIndexRef.current] = value;
-    historyIndexRef.current = (historyIndexRef.current + 1) % HISTORY_LENGTH;
-    absoluteFrameRef.current++;
-    if (historyCountRef.current < HISTORY_LENGTH) {
-      historyCountRef.current++;
-    }
-  }, []);
 
   useEffect(() => {
     if (!active) return;
@@ -56,6 +47,14 @@ export function EnvelopeVisualizer({
     const draw = () => {
       const canvas = canvasRef.current;
       if (!canvas) return;
+
+      const arr = historyRef.current;
+      arr[historyIndexRef.current] = rmsRef.current;
+      historyIndexRef.current = (historyIndexRef.current + 1) % HISTORY_LENGTH;
+      absoluteFrameRef.current++;
+      if (historyCountRef.current < HISTORY_LENGTH) {
+        historyCountRef.current++;
+      }
 
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
@@ -169,8 +168,8 @@ export function EnvelopeVisualizer({
   }, [active]);
 
   useEffect(() => {
-    pushValue(rmsEnergy);
-  }, [rmsEnergy, pushValue]);
+    rmsRef.current = rmsEnergy;
+  });
 
   useEffect(() => {
     floorRef.current = floor;

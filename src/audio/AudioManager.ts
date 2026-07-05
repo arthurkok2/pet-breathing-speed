@@ -10,7 +10,13 @@ export class AudioManager {
   private highpassHz = 100;
 
   async start(): Promise<void> {
-    this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    this.stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+      },
+    });
     const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     this.context = new AudioCtx();
 

@@ -26,34 +26,6 @@ function pushSustained(
   return { pulseDetected, bpm };
 }
 
-function pushRampUp(
-  detector: BreathDetector,
-  from: number,
-  to: number,
-  count: number,
-  startFrame: number,
-  msPerFrame = 16,
-): void {
-  for (let i = 0; i < count; i++) {
-    const t = from + ((to - from) * (i + 1)) / (count + 1);
-    detector.update(t, (startFrame + i) * msPerFrame);
-  }
-}
-
-function pushRampDown(
-  detector: BreathDetector,
-  from: number,
-  to: number,
-  count: number,
-  startFrame: number,
-  msPerFrame = 16,
-): void {
-  for (let i = 0; i < count; i++) {
-    const t = from - ((from - to) * (i + 1)) / (count + 1);
-    detector.update(t, (startFrame + i) * msPerFrame);
-  }
-}
-
 describe("BreathDetector (sustained-energy)", () => {
   let detector: BreathDetector;
 

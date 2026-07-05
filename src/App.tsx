@@ -7,6 +7,9 @@ type AppState = "idle" | "requesting" | "monitoring" | "error";
 
 function App() {
   const [state, setState] = useState<AppState>("idle");
+  const [echoOff, setEchoOff] = useState(true);
+  const [noiseOff, setNoiseOff] = useState(true);
+  const [gainOff, setGainOff] = useState(true);
   const {
     bpm,
     rmsEnergy,
@@ -17,6 +20,9 @@ function App() {
     calibration,
     isRecording,
     hasRecording,
+    assessmentActive,
+    assessmentElapsed,
+    assessmentResult,
     start,
     stop,
     clearPulse,
@@ -24,6 +30,9 @@ function App() {
     stopRecording,
     downloadSession,
     downloadAudio,
+    startAssessment,
+    stopAssessment,
+    dismissAssessment,
   } = useBreathMonitor();
 
   useEffect(() => {
@@ -43,7 +52,11 @@ function App() {
 
     setState("requesting");
     try {
-      await start();
+      await start({
+        echoCancellation: echoOff ? false : true,
+        noiseSuppression: noiseOff ? false : true,
+        autoGainControl: gainOff ? false : true,
+      });
       setState("monitoring");
     } catch (err) {
       const message =
@@ -79,14 +92,26 @@ function App() {
         active={state === "monitoring"}
       />
       <p className="state-label">
-        {state === "monitoring" && pulseDetected
-          ? "Breath detected"
-          : isRecording
-            ? "Recording..."
-            : stateLabels[state]}
+        {state === "monitoring" && assessmentActive
+          ? `Assessing... ${assessmentElapsed}s / 60s`
+          : state === "monitoring" && pulseDetected
+            ? "Breath detected"
+            : isRecording
+              ? "Recording..."
+              : stateLabels[state]}
       </p>
       {state === "monitoring" && (
         <div className="recording-bar">
+          {!assessmentActive && (
+            <button className="assess-btn" onClick={startAssessment}>
+              Assess 1 min
+            </button>
+          )}
+          {assessmentActive && (
+            <button className="assess-btn cancel" onClick={stopAssessment}>
+              Cancel
+            </button>
+          )}
           {!isRecording ? (
             <button className="record-btn" onClick={startRecording}>
               Record Session
@@ -115,10 +140,66 @@ function App() {
       >
         {state === "monitoring" ? "Stop Monitoring" : "Start Monitoring"}
       </button>
+      {state === "idle" && (
+        <div className="audio-toggles">
+          <label className="audio-toggle">
+            <input
+              type="checkbox"
+              checked={echoOff}
+              onChange={(e) => setEchoOff(e.target.checked)}
+            />
+            <span>Disable echo cancellation</span>
+          </label>
+          <label className="audio-toggle">
+            <input
+              type="checkbox"
+              checked={noiseOff}
+              onChange={(e) => setNoiseOff(e.target.checked)}
+            />
+            <span>Disable noise suppression</span>
+          </label>
+          <label className="audio-toggle">
+            <input
+              type="checkbox"
+              checked={gainOff}
+              onChange={(e) => setGainOff(e.target.checked)}
+            />
+            <span>Disable auto gain control</span>
+          </label>
+        </div>
+      )}
       {state === "error" && (
         <button className="toggle-btn" onClick={() => setState("idle")}>
           Dismiss
         </button>
+      )}
+      {assessmentResult && (
+        <div className="report-overlay">
+          <div className="report-card">
+            <h2>Assessment Complete</h2>
+            <div className="report-stat">
+              <span className="report-value">{assessmentResult.avgBpm}</span>
+              <span className="report-label">Average BPM</span>
+            </div>
+            <div className="report-details">
+              <div className="report-row">
+                <span>Range</span>
+                <strong>{assessmentResult.minBpm} – {assessmentResult.maxBpm} BPM</strong>
+              </div>
+              <div className="report-row">
+                <span>Total breaths</span>
+                <strong>{assessmentResult.breaths}</strong>
+              </div>
+              <div className="report-row">
+                <span>Duration</span>
+                <strong>{assessmentResult.durationSec}s</strong>
+              </div>
+            </div>
+            <button className="toggle-btn" onClick={dismissAssessment}>
+              Dismiss
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

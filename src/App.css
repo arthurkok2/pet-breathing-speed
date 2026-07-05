@@ -134,3 +134,150 @@
   border-color: #4fc3f7;
   color: #4fc3f7;
 }
+
+.assess-btn {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  color: #4ade80;
+  background: transparent;
+  border: 2px solid #4ade80;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.assess-btn:hover {
+  background: #4ade80;
+  color: #121212;
+}
+
+.assess-btn.cancel {
+  color: #ff9800;
+  border-color: #ff9800;
+}
+
+.assess-btn.cancel:hover {
+  background: #ff9800;
+  color: #121212;
+}
+
+.report-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.report-card {
+  background: #1e1e1e;
+  border: 2px solid #333;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  min-width: 280px;
+}
+
+.report-card h2 {
+  font-size: 1rem;
+  font-weight: 400;
+  color: #4ade80;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin: 0 0 1.5rem;
+}
+
+.report-stat {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.report-value {
+  font-size: 4rem;
+  font-weight: 700;
+  color: #4fc3f7;
+  line-height: 1;
+}
+
+.report-label {
+  font-size: 1.25rem;
+  color: #666;
+}
+
+.report-details {
+  border-top: 1px solid #333;
+  padding-top: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.report-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.report-row strong {
+  color: #aaa;
+}
+
+.audio-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+  max-width: 320px;
+}
+
+.audio-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: #666;
+  cursor: pointer;
+}
+
+.audio-toggle input[type="checkbox"] {
+  appearance: none;
+  width: 32px;
+  height: 18px;
+  background: #333;
+  border-radius: 9px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.audio-toggle input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: #666;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.audio-toggle input[type="checkbox"]:checked {
+  background: #4fc3f7;
+}
+
+.audio-toggle input[type="checkbox"]:checked::after {
+  left: 16px;
+  background: #121212;
+}
+
+.audio-toggle span {
+  user-select: none;
+}

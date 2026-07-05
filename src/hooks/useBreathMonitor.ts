@@ -1,6 +1,7 @@
 import { useRef, useState, useCallback } from "react";
 import { AudioManager, BreathDetector } from "../audio";
 import type { CalibrationState } from "../audio/BreathDetector";
+import type { AudioConstraints } from "../audio/AudioManager";
 
 interface RmsLogEntry {
   t: number;
@@ -23,6 +24,14 @@ interface SessionData {
   breaths: BreathEvent[];
 }
 
+export interface AssessmentResult {
+  breaths: number;
+  avgBpm: number;
+  minBpm: number;
+  maxBpm: number;
+  durationSec: number;
+}
+
 function downloadJson(filename: string, data: unknown): void {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -42,6 +51,9 @@ export function useBreathMonitor() {
   const [floor, setFloor] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [hasRecording, setHasRecording] = useState(false);
+  const [assessmentActive, setAssessmentActive] = useState(false);
+  const [assessmentElapsed, setAssessmentElapsed] = useState(0);
+  const [assessmentResult, setAssessmentResult] = useState<AssessmentResult | null>(null);
   const [calibration, setCalibration] = useState<CalibrationState>({
     calibratedMagnitude: 0,
     floor: 0,
@@ -57,12 +69,17 @@ export function useBreathMonitor() {
   const startTimeRef = useRef(0);
   const audioBlobRef = useRef<Blob | null>(null);
   const recordingRef = useRef(false);
+  const assessmentRef = useRef(false);
+  const assessmentAccumulatedRef = useRef(0);
+  const assessmentLastBreathRef = useRef(0);
+  const assessmentBreathsRef = useRef(0);
+  const assessmentIntervalsRef = useRef<number[]>([]);
 
-  const start = useCallback(async () => {
+  const start = useCallback(async (constraints: AudioConstraints = {}) => {
     const audio = new AudioManager();
     const detector = new BreathDetector();
 
-    await audio.start();
+    await audio.start(constraints);
 
     audioRef.current = audio;
     detectorRef.current = detector;
@@ -106,6 +123,36 @@ export function useBreathMonitor() {
       if (state.pulseDetected) {
         setPulseDetected(true);
         setBreathFrameCounter((c) => c + 1);
+        if (assessmentRef.current) {
+          const now = performance.now();
+          if (assessmentLastBreathRef.current > 0) {
+            const interval = now - assessmentLastBreathRef.current;
+            assessmentIntervalsRef.current.push(interval);
+            if (interval <= 10000) {
+              assessmentAccumulatedRef.current += interval;
+            }
+          }
+          assessmentLastBreathRef.current = now;
+          assessmentBreathsRef.current++;
+
+          setAssessmentElapsed(Math.round(assessmentAccumulatedRef.current / 1000));
+
+          if (assessmentAccumulatedRef.current >= 60000) {
+            assessmentRef.current = false;
+            const intervals = assessmentIntervalsRef.current.filter((v) => v <= 10000);
+            const avgInterval = intervals.reduce((s, v) => s + v, 0) / intervals.length;
+            const avgBpm = Math.round(60000 / avgInterval);
+            const bpms = intervals.map((v) => Math.round(60000 / v));
+            setAssessmentResult({
+              breaths: assessmentBreathsRef.current,
+              avgBpm,
+              minBpm: Math.min(...bpms),
+              maxBpm: Math.max(...bpms),
+              durationSec: Math.round(assessmentAccumulatedRef.current / 1000),
+            });
+            setAssessmentActive(false);
+          }
+        }
       }
     });
   }, []);
@@ -195,6 +242,26 @@ export function useBreathMonitor() {
     URL.revokeObjectURL(url);
   }, []);
 
+  const startAssessment = useCallback(() => {
+    assessmentRef.current = true;
+    assessmentAccumulatedRef.current = 0;
+    assessmentLastBreathRef.current = 0;
+    assessmentBreathsRef.current = 0;
+    assessmentIntervalsRef.current = [];
+    setAssessmentActive(true);
+    setAssessmentElapsed(0);
+    setAssessmentResult(null);
+  }, []);
+
+  const stopAssessment = useCallback(() => {
+    assessmentRef.current = false;
+    setAssessmentActive(false);
+  }, []);
+
+  const dismissAssessment = useCallback(() => {
+    setAssessmentResult(null);
+  }, []);
+
   return {
     bpm,
     rmsEnergy,
@@ -205,6 +272,9 @@ export function useBreathMonitor() {
     calibration,
     isRecording,
     hasRecording,
+    assessmentActive,
+    assessmentElapsed,
+    assessmentResult,
     start,
     stop,
     clearPulse,
@@ -212,5 +282,8 @@ export function useBreathMonitor() {
     stopRecording,
     downloadSession,
     downloadAudio,
+    startAssessment,
+    stopAssessment,
+    dismissAssessment,
   };
 }

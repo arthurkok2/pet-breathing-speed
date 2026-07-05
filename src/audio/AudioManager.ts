@@ -1,3 +1,9 @@
+export interface AudioConstraints {
+  echoCancellation?: boolean;
+  noiseSuppression?: boolean;
+  autoGainControl?: boolean;
+}
+
 export class AudioManager {
   private context: AudioContext | null = null;
   private source: MediaStreamAudioSourceNode | null = null;
@@ -9,12 +15,12 @@ export class AudioManager {
   private fftSize = 2048;
   private highpassHz = 100;
 
-  async start(): Promise<void> {
+  async start(constraints: AudioConstraints = {}): Promise<void> {
     this.stream = await navigator.mediaDevices.getUserMedia({
       audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
+        echoCancellation: constraints.echoCancellation ?? false,
+        noiseSuppression: constraints.noiseSuppression ?? false,
+        autoGainControl: constraints.autoGainControl ?? false,
       },
     });
     const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;

@@ -172,13 +172,13 @@
 .toggle-btn.active {
   background: var(--color-danger);
   border-color: var(--color-danger);
-  color: #fff;
+  color: var(--color-on-danger);
 }
 
 .toggle-btn.active:hover {
   background: var(--color-danger);
   border-color: var(--color-danger);
-  color: #fff;
+  color: var(--color-on-danger);
   transform: scale(1.03);
 }
 
@@ -205,14 +205,14 @@
 .record-btn.recording {
   background: var(--color-danger);
   border-color: var(--color-danger);
-  color: #fff;
+  color: var(--color-on-danger);
   animation: pulse-rec 1.5s ease-in-out infinite;
 }
 
 .record-btn.recording:hover {
   background: var(--color-danger);
   border-color: var(--color-danger);
-  color: #fff;
+  color: var(--color-on-danger);
   transform: scale(1.03);
 }
 
@@ -328,7 +328,7 @@
 .report-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;

@@ -237,11 +237,13 @@ function App() {
       setAvatarDataUrl(dataUrl);
     };
     reader.readAsDataURL(file);
+    e.target.value = "";
   };
 
   const handleAvatarReset = () => {
     localStorage.removeItem("willow-avatar");
     setAvatarDataUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleToggle = async () => {

@@ -5,15 +5,64 @@
   justify-content: center;
   min-height: 100vh;
   padding: 2rem;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
-.title {
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.avatar-wrapper {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--avatar-gradient-from), var(--avatar-gradient-to));
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-avatar);
+  overflow: hidden;
+  position: relative;
+  transition: transform 0.2s ease;
+}
+
+.avatar-wrapper:hover {
+  transform: scale(1.05);
+}
+
+.avatar-wrapper.has-photo {
+  font-size: 0;
+}
+
+.avatar-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-input {
+  display: none;
+}
+
+.header-text {
+  text-align: left;
+}
+
+.header-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.header-breed {
+  font-size: 0.7rem;
   font-weight: 400;
-  color: #888;
-  text-transform: uppercase;
-  letter-spacing: 0.3em;
+  color: var(--color-text-muted);
 }
 
 .bpm-display {
@@ -25,53 +74,66 @@
 .bpm-value {
   font-size: 8rem;
   font-weight: 700;
-  color: #4fc3f7;
+  color: var(--color-accent);
   line-height: 1;
 }
 
 .bpm-label {
   font-size: 2rem;
-  color: #666;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.waveform-container {
+  width: 100%;
+  max-width: 420px;
+  background: var(--color-surface);
+  border-radius: var(--radius-container);
+  overflow: hidden;
+}
+
+.envelope-canvas {
+  display: block;
+  width: 100%;
+  height: 140px;
+}
+
+.stats-pills {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  width: 100%;
+  max-width: 420px;
+}
+
+.stat-pill {
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  padding: 0.5rem 0.7rem;
+  text-align: center;
+  min-width: 55px;
+  flex: 1;
+}
+
+.stat-pill .pill-value {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text);
+}
+
+.stat-pill .pill-label {
+  font-size: 0.6rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-transform: lowercase;
 }
 
 .state-label {
-  font-size: 1rem;
-  color: #888;
-  min-height: 1.5em;
-}
-
-.toggle-btn {
-  padding: 1rem 2.5rem;
-  font-size: 1rem;
-  font-family: inherit;
-  font-variant-numeric: tabular-nums;
-  color: #e0e0e0;
-  background: #1e1e1e;
-  border: 2px solid #333;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.toggle-btn:hover:not(:disabled) {
-  border-color: #4fc3f7;
-  color: #4fc3f7;
-}
-
-.toggle-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.toggle-btn.active {
-  background: #b71c1c;
-  border-color: #b71c1c;
-}
-
-.toggle-btn.active:hover {
-  background: #d32f2f;
-  border-color: #d32f2f;
-  color: #e0e0e0;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  min-height: 1.2em;
+  font-weight: 500;
 }
 
 .recording-bar {
@@ -82,34 +144,76 @@
   justify-content: center;
 }
 
+.toggle-btn {
+  padding: 0.6rem 2.5rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-button);
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.toggle-btn:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  transform: scale(1.03);
+}
+
+.toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle-btn.active {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: #fff;
+}
+
+.toggle-btn.active:hover {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: #fff;
+  transform: scale(1.03);
+}
+
 .record-btn {
   padding: 0.5rem 1.25rem;
   font-size: 0.85rem;
   font-family: inherit;
   font-variant-numeric: tabular-nums;
-  color: #e0e0e0;
-  background: #1e1e1e;
-  border: 2px solid #333;
-  border-radius: 4px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: transparent;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-button);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
 }
 
 .record-btn:hover {
-  border-color: #ff9800;
-  color: #ff9800;
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+  transform: scale(1.03);
 }
 
 .record-btn.recording {
-  background: #b71c1c;
-  border-color: #b71c1c;
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: #fff;
   animation: pulse-rec 1.5s ease-in-out infinite;
 }
 
 .record-btn.recording:hover {
-  background: #d32f2f;
-  border-color: #d32f2f;
-  color: #e0e0e0;
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: #fff;
+  transform: scale(1.03);
 }
 
 @keyframes pulse-rec {
@@ -122,17 +226,19 @@
   font-size: 0.85rem;
   font-family: inherit;
   font-variant-numeric: tabular-nums;
-  color: #888;
+  font-weight: 600;
+  color: var(--color-text-muted);
   background: transparent;
-  border: 2px solid #333;
-  border-radius: 4px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-button);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .download-btn:hover {
-  border-color: #4fc3f7;
-  color: #4fc3f7;
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  transform: scale(1.03);
 }
 
 .assess-btn {
@@ -140,27 +246,83 @@
   font-size: 0.85rem;
   font-family: inherit;
   font-variant-numeric: tabular-nums;
-  color: #4ade80;
+  font-weight: 600;
+  color: var(--color-success);
   background: transparent;
-  border: 2px solid #4ade80;
-  border-radius: 4px;
+  border: 2px solid var(--color-success);
+  border-radius: var(--radius-button);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
 }
 
 .assess-btn:hover {
-  background: #4ade80;
-  color: #121212;
+  background: var(--color-success);
+  color: var(--color-bg);
+  transform: scale(1.03);
 }
 
 .assess-btn.cancel {
-  color: #ff9800;
-  border-color: #ff9800;
+  color: var(--color-warning);
+  border-color: var(--color-warning);
 }
 
 .assess-btn.cancel:hover {
-  background: #ff9800;
-  color: #121212;
+  background: var(--color-warning);
+  color: var(--color-bg);
+}
+
+.audio-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+  max-width: 320px;
+}
+
+.audio-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.audio-toggle input[type="checkbox"] {
+  appearance: none;
+  width: 32px;
+  height: 18px;
+  background: var(--color-border);
+  border-radius: 9px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.audio-toggle input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: var(--color-text-muted);
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.audio-toggle input[type="checkbox"]:checked {
+  background: var(--color-accent);
+}
+
+.audio-toggle input[type="checkbox"]:checked::after {
+  left: 16px;
+  background: var(--color-bg);
+}
+
+.audio-toggle span {
+  user-select: none;
 }
 
 .report-overlay {
@@ -174,9 +336,9 @@
 }
 
 .report-card {
-  background: #1e1e1e;
-  border: 2px solid #333;
-  border-radius: 8px;
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-container);
   padding: 2rem;
   text-align: center;
   min-width: 320px;
@@ -186,8 +348,8 @@
 
 .report-card h2 {
   font-size: 1rem;
-  font-weight: 400;
-  color: #4ade80;
+  font-weight: 500;
+  color: var(--color-success);
   text-transform: uppercase;
   letter-spacing: 0.15em;
   margin: 0 0 1.5rem;
@@ -204,17 +366,18 @@
 .report-value {
   font-size: 4rem;
   font-weight: 700;
-  color: #4fc3f7;
+  color: var(--color-accent);
   line-height: 1;
 }
 
 .report-label {
   font-size: 1.25rem;
-  color: #666;
+  color: var(--color-text-muted);
+  font-weight: 500;
 }
 
 .report-details {
-  border-top: 1px solid #333;
+  border-top: 1px solid var(--color-border);
   padding-top: 1rem;
   margin-bottom: 1.5rem;
 }
@@ -224,11 +387,13 @@
   justify-content: space-between;
   padding: 0.4rem 0;
   font-size: 0.85rem;
-  color: #888;
+  color: var(--color-text-secondary);
+  font-weight: 500;
 }
 
 .report-row strong {
-  color: #aaa;
+  color: var(--color-text);
+  font-weight: 600;
 }
 
 .report-canvas {
@@ -256,68 +421,17 @@
   font-size: 0.85rem;
   font-family: inherit;
   font-variant-numeric: tabular-nums;
-  color: #888;
+  font-weight: 600;
+  color: var(--color-text-muted);
   background: transparent;
-  border: 2px solid #333;
-  border-radius: 4px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-button);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .report-actions .download-btn:hover {
-  border-color: #4fc3f7;
-  color: #4fc3f7;
-}
-
-.audio-toggles {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  width: 100%;
-  max-width: 320px;
-}
-
-.audio-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.75rem;
-  color: #666;
-  cursor: pointer;
-}
-
-.audio-toggle input[type="checkbox"] {
-  appearance: none;
-  width: 32px;
-  height: 18px;
-  background: #333;
-  border-radius: 9px;
-  position: relative;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.audio-toggle input[type="checkbox"]::after {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 14px;
-  height: 14px;
-  background: #666;
-  border-radius: 50%;
-  transition: all 0.2s;
-}
-
-.audio-toggle input[type="checkbox"]:checked {
-  background: #4fc3f7;
-}
-
-.audio-toggle input[type="checkbox"]:checked::after {
-  left: 16px;
-  background: #121212;
-}
-
-.audio-toggle span {
-  user-select: none;
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  transform: scale(1.03);
 }

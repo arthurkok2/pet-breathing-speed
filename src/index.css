@@ -1,3 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap');
+
+:root {
+  --color-bg: #fef5f0;
+  --color-surface: #fae8dd;
+  --color-text: #5a4a5e;
+  --color-text-secondary: #a88ab0;
+  --color-text-muted: #b0a0b8;
+  --color-accent: #9b7ec4;
+  --color-success: #7ec89a;
+  --color-warning: #f0a08c;
+  --color-danger: #c9445a;
+  --color-border: #e8d5d0;
+  --radius-container: 14px;
+  --radius-card: 12px;
+  --radius-button: 20px;
+  --avatar-gradient-from: #d4b8e8;
+  --avatar-gradient-to: #f0c4a6;
+  --shadow-avatar: 0 2px 8px rgba(155, 126, 196, 0.2);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #1a1a2e;
+    --color-surface: #232340;
+    --color-text: #e8d5f5;
+    --color-text-secondary: #b8a0cc;
+    --color-text-muted: #8a7a9e;
+    --color-accent: #c4a6f7;
+    --color-success: #a6f0c4;
+    --color-warning: #f0c4a6;
+    --color-danger: #e0556a;
+    --color-border: #2e2e4a;
+    --avatar-gradient-from: #c4a6f7;
+    --avatar-gradient-to: #f0c4a6;
+    --shadow-avatar: 0 2px 8px rgba(196, 166, 247, 0.2);
+  }
+}
+
 *,
 *::before,
 *::after {
@@ -14,10 +53,10 @@ body,
 }
 
 body {
-  font-family: "Courier New", Courier, monospace;
+  font-family: "Quicksand", system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
-  background: #121212;
-  color: #e0e0e0;
+  background: var(--color-bg);
+  color: var(--color-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

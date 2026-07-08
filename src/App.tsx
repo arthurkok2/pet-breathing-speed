@@ -23,13 +23,17 @@ function AssessmentWaveform({ result, canvasRef }: { result: AssessmentResult; c
     canvas.height = rect.height * dpr;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    const style = getComputedStyle(document.documentElement);
+    const accentColor = style.getPropertyValue("--color-accent").trim() || "#9b7ec4";
+    const successColor = style.getPropertyValue("--color-success").trim() || "#7ec89a";
+    const surfaceColor = style.getPropertyValue("--color-surface").trim() || "#fae8dd";
     ctx.scale(dpr, dpr);
 
     const w = rect.width;
     const h = rect.height;
     const log = result.rmsLog;
 
-    ctx.fillStyle = "#0a0a0a";
+    ctx.fillStyle = surfaceColor;
     ctx.fillRect(0, 0, w, h);
 
     let peak = 1;
@@ -40,9 +44,9 @@ function AssessmentWaveform({ result, canvasRef }: { result: AssessmentResult; c
       const e = Math.min(log.length - 1, frame);
       const x1 = (s / log.length) * w;
       const x2 = (e / log.length) * w;
-      ctx.fillStyle = "rgba(74, 222, 128, 0.06)";
+      ctx.fillStyle = `${successColor}0F`;
       ctx.fillRect(x1, 0, x2 - x1, h);
-      ctx.strokeStyle = "rgba(74, 222, 128, 0.15)";
+      ctx.strokeStyle = `${successColor}26`;
       ctx.lineWidth = 0.5;
       ctx.beginPath();
       ctx.moveTo(x1, 0);
@@ -50,7 +54,7 @@ function AssessmentWaveform({ result, canvasRef }: { result: AssessmentResult; c
       ctx.stroke();
     }
 
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.04)";
+    ctx.strokeStyle = `${accentColor}0A`;
     ctx.lineWidth = 0.5;
     for (let i = 1; i < 4; i++) {
       const y = (h / 4) * i;
@@ -61,7 +65,7 @@ function AssessmentWaveform({ result, canvasRef }: { result: AssessmentResult; c
     }
 
     if (log.length > 1) {
-      ctx.strokeStyle = "#4fc3f7";
+      ctx.strokeStyle = accentColor;
       ctx.lineWidth = 1;
       ctx.beginPath();
       for (let i = 0; i < log.length; i++) {
@@ -76,7 +80,7 @@ function AssessmentWaveform({ result, canvasRef }: { result: AssessmentResult; c
     for (const frame of result.breathFrames) {
       const x = (frame / (log.length - 1)) * w;
       const y = h - (log[frame] / peak) * h;
-      ctx.fillStyle = "#4ade80";
+      ctx.fillStyle = successColor;
       ctx.beginPath();
       ctx.arc(x, y, 2.5, 0, Math.PI * 2);
       ctx.fill();
@@ -174,6 +178,10 @@ function App() {
   const [echoOff, setEchoOff] = useState(true);
   const [noiseOff, setNoiseOff] = useState(true);
   const [gainOff, setGainOff] = useState(true);
+  const [avatarDataUrl, setAvatarDataUrl] = useState<string | null>(() => {
+    return localStorage.getItem("willow-avatar");
+  });
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const waveformCanvasRef = useRef<HTMLCanvasElement>(null);
   const {
     bpm,
@@ -215,6 +223,27 @@ function App() {
     }
   }, [assessmentResult, state, stop]);
 
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      localStorage.setItem("willow-avatar", dataUrl);
+      setAvatarDataUrl(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAvatarReset = () => {
+    localStorage.removeItem("willow-avatar");
+    setAvatarDataUrl(null);
+  };
+
   const handleToggle = async () => {
     if (state === "monitoring") {
       stop();
@@ -250,19 +279,65 @@ function App() {
 
   return (
     <div className="container">
-      <h1 className="title">Willow</h1>
+      <div className="header">
+        <div
+          className={`avatar-wrapper${avatarDataUrl ? " has-photo" : ""}`}
+          onClick={handleAvatarClick}
+          onContextMenu={(e) => { e.preventDefault(); handleAvatarReset(); }}
+          title="Click to upload photo, right-click to reset"
+        >
+          {avatarDataUrl ? (
+            <img src={avatarDataUrl} alt="Willow" className="avatar-photo" />
+          ) : (
+            "\uD83D\uDC36"
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="avatar-input"
+            onChange={handleAvatarFile}
+          />
+        </div>
+        <div className="header-text">
+          <div className="header-name">Willow</div>
+          <div className="header-breed">senior pom &middot; resting</div>
+        </div>
+      </div>
       <div className="bpm-display">
         <span className="bpm-value">{bpm ?? "--"}</span>
         <span className="bpm-label">BPM</span>
       </div>
-      <EnvelopeVisualizer
-        rmsEnergy={rmsEnergy}
-        floor={floor}
-        calibration={calibration}
-        breathCount={breathCount}
-        breathFrameCounter={breathFrameCounter}
-        active={state === "monitoring"}
-      />
+      <div className="waveform-container">
+        <EnvelopeVisualizer
+          rmsEnergy={rmsEnergy}
+          floor={floor}
+          calibration={calibration}
+          breathCount={breathCount}
+          breathFrameCounter={breathFrameCounter}
+          active={state === "monitoring"}
+        />
+      </div>
+      <div className="stats-pills">
+        <div className="stat-pill">
+          <div className="pill-value" style={{ color: "var(--color-text-muted)" }}>{Math.round(calibration.floor)}</div>
+          <div className="pill-label">floor</div>
+        </div>
+        {calibration.initialized && (
+          <div className="stat-pill">
+            <div className="pill-value" style={{ color: "var(--color-warning)" }}>{Math.round(calibration.calibratedMagnitude)}</div>
+            <div className="pill-label">mag</div>
+          </div>
+        )}
+        <div className="stat-pill">
+          <div className="pill-value" style={{ color: "var(--color-accent)" }}>{calibration.peakCount}</div>
+          <div className="pill-label">peaks</div>
+        </div>
+        <div className="stat-pill">
+          <div className="pill-value" style={{ color: "var(--color-success)" }}>{breathCount}</div>
+          <div className="pill-label">breaths</div>
+        </div>
+      </div>
       <p className="state-label">
         {state === "monitoring" && assessmentActive
           ? `Assessing... ${assessmentElapsed}s / 60s`

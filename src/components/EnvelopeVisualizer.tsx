@@ -23,8 +23,6 @@ interface BreathSpan {
 export function EnvelopeVisualizer({
   rmsEnergy,
   floor,
-  calibration,
-  breathCount,
   breathFrameCounter,
   active,
 }: EnvelopeVisualizerProps) {
@@ -212,22 +210,6 @@ export function EnvelopeVisualizer({
   return (
     <div className="envelope-container">
       <canvas ref={canvasRef} className="envelope-canvas" />
-      <div className="envelope-stats">
-        <span className="stat">
-          floor <strong>{Math.round(calibration.floor)}</strong>
-        </span>
-        {calibration.initialized && (
-          <span className="stat">
-            mag <strong>{Math.round(calibration.calibratedMagnitude)}</strong>
-          </span>
-        )}
-        <span className="stat">
-          peaks <strong>{calibration.peakCount}</strong>
-        </span>
-        <span className="stat">
-          breaths <strong>{breathCount}</strong>
-        </span>
-      </div>
     </div>
   );
 }

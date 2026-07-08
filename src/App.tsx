@@ -286,6 +286,9 @@ function App() {
           className={`avatar-wrapper${avatarDataUrl ? " has-photo" : ""}`}
           onClick={handleAvatarClick}
           onContextMenu={(e) => { e.preventDefault(); handleAvatarReset(); }}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleAvatarClick(); } }}
+          tabIndex={0}
+          role="button"
           title="Click to upload photo, right-click to reset"
         >
           {avatarDataUrl ? (

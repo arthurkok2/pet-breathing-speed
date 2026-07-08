@@ -38,6 +38,18 @@ export function EnvelopeVisualizer({
   const yMaxRef = useRef(Y_MIN_CEILING);
   const breathSpansRef = useRef<BreathSpan[]>([]);
   const lastCounterRef = useRef(0);
+  const accentRef = useRef("#9b7ec4");
+  const successRef = useRef("#7ec89a");
+  const warningRef = useRef("#f0a08c");
+  const surfaceRef = useRef("#fae8dd");
+
+  useEffect(() => {
+    const style = getComputedStyle(document.documentElement);
+    accentRef.current = style.getPropertyValue("--color-accent").trim() || "#9b7ec4";
+    successRef.current = style.getPropertyValue("--color-success").trim() || "#7ec89a";
+    warningRef.current = style.getPropertyValue("--color-warning").trim() || "#f0a08c";
+    surfaceRef.current = style.getPropertyValue("--color-surface").trim() || "#fae8dd";
+  });
 
   useEffect(() => {
     if (!active) return;
@@ -59,11 +71,10 @@ export function EnvelopeVisualizer({
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      const style = getComputedStyle(document.documentElement);
-      const accentColor = style.getPropertyValue("--color-accent").trim() || "#9b7ec4";
-      const successColor = style.getPropertyValue("--color-success").trim() || "#7ec89a";
-      const warningColor = style.getPropertyValue("--color-warning").trim() || "#f0a08c";
-      const surfaceColor = style.getPropertyValue("--color-surface").trim() || "#fae8dd";
+      const accentColor = accentRef.current;
+      const successColor = successRef.current;
+      const warningColor = warningRef.current;
+      const surfaceColor = surfaceRef.current;
 
       const dpr = window.devicePixelRatio || 1;
       const rect = canvas.getBoundingClientRect();

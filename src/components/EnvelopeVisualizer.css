@@ -1,28 +1,10 @@
 .envelope-container {
   width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
+  max-width: 420px;
 }
 
 .envelope-canvas {
   display: block;
   width: 100%;
-  height: 200px;
-  border-radius: 4px;
-}
-
-.envelope-stats {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  font-size: 0.65rem;
-  font-family: inherit;
-  font-variant-numeric: tabular-nums;
-  color: #888;
-  padding: 0.15rem 0 0;
-}
-
-.envelope-stats .stat strong {
-  color: #aaa;
-  font-weight: 600;
+  height: 140px;
 }

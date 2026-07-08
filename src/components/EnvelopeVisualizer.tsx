@@ -59,6 +59,12 @@ export function EnvelopeVisualizer({
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
+      const style = getComputedStyle(document.documentElement);
+      const accentColor = style.getPropertyValue("--color-accent").trim() || "#9b7ec4";
+      const successColor = style.getPropertyValue("--color-success").trim() || "#7ec89a";
+      const warningColor = style.getPropertyValue("--color-warning").trim() || "#f0a08c";
+      const surfaceColor = style.getPropertyValue("--color-surface").trim() || "#fae8dd";
+
       const dpr = window.devicePixelRatio || 1;
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width * dpr;
@@ -68,7 +74,7 @@ export function EnvelopeVisualizer({
       const w = rect.width;
       const h = rect.height;
 
-      ctx.fillStyle = "#121212";
+      ctx.fillStyle = surfaceColor;
       ctx.fillRect(0, 0, w, h);
 
       const history = historyRef.current;
@@ -102,10 +108,10 @@ export function EnvelopeVisualizer({
           const x1 = ((s - visibleStart) / (count - 1)) * w;
           const x2 = ((e - visibleStart) / (count - 1)) * w;
 
-          ctx.fillStyle = "rgba(74, 222, 128, 0.07)";
+          ctx.fillStyle = `${successColor}12`;
           ctx.fillRect(x1, 0, x2 - x1, h);
 
-          ctx.strokeStyle = "rgba(74, 222, 128, 0.25)";
+          ctx.strokeStyle = `${successColor}40`;
           ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.moveTo(x1, 0);
@@ -118,7 +124,7 @@ export function EnvelopeVisualizer({
         }
       }
 
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+      ctx.strokeStyle = `${accentColor}0D`;
       ctx.lineWidth = 1;
       for (let i = 1; i < 4; i++) {
         const y = h - (scale * (i / 4)) / scale * h;
@@ -131,7 +137,7 @@ export function EnvelopeVisualizer({
       const f = floorRef.current;
       if (f > 0) {
         const fy = h - (f / scale) * h;
-        ctx.strokeStyle = "rgba(255, 152, 0, 0.4)";
+        ctx.strokeStyle = `${warningColor}66`;
         ctx.lineWidth = 1;
         ctx.setLineDash([4, 8]);
         ctx.beginPath();
@@ -142,7 +148,7 @@ export function EnvelopeVisualizer({
       }
 
       if (count > 1) {
-        ctx.strokeStyle = "#4fc3f7";
+        ctx.strokeStyle = accentColor;
         ctx.lineWidth = 1.5;
         ctx.setLineDash([]);
         ctx.beginPath();

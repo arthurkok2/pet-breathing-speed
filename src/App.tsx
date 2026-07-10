@@ -175,9 +175,9 @@ ${imgData ? `<img src="${imgData}" alt="Breathing waveform">` : ""}
 
 function App() {
   const [state, setState] = useState<AppState>("idle");
-  const [echoOff, setEchoOff] = useState(true);
-  const [noiseOff, setNoiseOff] = useState(true);
-  const [gainOff, setGainOff] = useState(true);
+  const [echoOff, setEchoOff] = useState(false);
+  const [noiseOff, setNoiseOff] = useState(false);
+  const [gainOff, setGainOff] = useState(false);
   const [avatarDataUrl, setAvatarDataUrl] = useState<string | null>(() => {
     return localStorage.getItem("willow-avatar");
   });
